@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { register, login, getMe, updateInterests, updateProfile } = require('../controllers/authController');
+const { register, login, getMe, updateInterests, updateProfile, seedAdmin } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
 // ── INPUT VALIDATION ───────────────────────────────────────
@@ -30,6 +30,9 @@ router.post('/register', registerValidator, register);
 
 // POST: authenticate user and get token
 router.post('/login', loginValidator, login);
+
+// GET: one-time seed for admin (publicly accessible once to fix fresh deployments)
+router.get('/seed-admin', seedAdmin);
 
 // GET: get current user info (requires "protect" token verification)
 router.get('/me', protect, getMe);

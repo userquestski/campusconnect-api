@@ -145,4 +145,33 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe, updateInterests, updateProfile };
+// ── @GET /api/auth/seed-admin ──────────────────────────────
+// Purpose: One-time creation of the Super Admin account (fix for fresh deployments)
+const seedAdmin = async (req, res) => {
+  try {
+    const adminEmail = 'superadmin@campusconnect.com';
+    const existingAdmin = await User.findOne({ email: adminEmail });
+
+    if (existingAdmin) {
+      return res.status(200).json({ message: 'Super Admin already exists!' });
+    }
+
+    // Create the initial admin account
+    const adminUser = await User.create({
+      name: 'Super Admin',
+      email: adminEmail,
+      password: 'adminpassword123',
+      role: 'superAdmin',
+    });
+
+    res.status(201).json({
+      message: 'Super Admin created successfully!',
+      email: adminEmail,
+      password: 'adminpassword123'
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Seeding failed', error: error.message });
+  }
+};
+
+module.exports = { register, login, getMe, updateInterests, updateProfile, seedAdmin };
