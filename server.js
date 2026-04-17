@@ -17,7 +17,10 @@ const PORT = process.env.PORT || 5000;
 
 // ── SECURITY MIDDLEWARE ───────────────────────────────────
 // Helmet helps secure Express apps by setting various HTTP headers
-app.use(helmet());
+// We configure it to allow images to be shared across domains (Netlify -> Render)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // ── CORS POLICY ──────────────────────────────────────────
 // Controls which frontends (domains) are allowed to talk to this API
