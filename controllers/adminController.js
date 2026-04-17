@@ -103,9 +103,35 @@ const approveClub = async (req, res) => {
 // Purpose: Permanent removal of a club from the platform
 const deleteClub = async (req, res) => {
   try {
-    const club = await Club.findByIdAndDelete(req.params.id);
+    const clubId = req.params.id;
+    const club = await Club.findById(clubId);
     if (!club) return res.status(404).json({ message: 'Club not found' });
-    res.json({ message: 'Club removed' });
+    
+    // 1. Find all events belonging to this club
+    const clubEvents = await Event.find({ clubId });
+    const eventIds = clubEvents.map(e => e._id);
+
+    // 2. Remove all those events from the Events collection
+    await Event.deleteMany({ clubId });
+
+    // 3. Clean up User profiles (Remove these events from registrations/waitlists)
+    await User.updateMany(
+      { $or: [
+        { registeredEvents: { $in: eventIds } },
+        { waitlistedEvents: { $in: eventIds } },
+        { followingClubs: clubId }
+      ]},
+      { $pull: { 
+        registeredEvents: { $in: eventIds },
+        waitlistedEvents: { $in: eventIds },
+        followingClubs: clubId
+      }}
+    );
+
+    // 4. Finally delete the club itself
+    await club.deleteOne();
+
+    res.json({ message: 'Club and its events removed successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Delete failed', error: error.message });
   }
@@ -166,7 +192,7 @@ const getAllEvents = async (req, res) => {
     const total = await Event.countDocuments();
     const events = await Event.find()
       .populate('clubId', 'clubName')
-      .populate('registeredStudents', 'name email rollNo department')
+      .populate('registeredStudents', 'name email rollNo department phone')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
