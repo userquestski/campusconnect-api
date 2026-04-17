@@ -9,7 +9,7 @@ const { sendRegistrationConfirmation, sendEventAnnouncement } = require('../util
 const { createNotification } = require('./notificationController');
 
 // Helper to determine the correct URL for an image based on storage (Cloudinary vs Local)
-const getUploadURL = (file) => {
+const getUploadURL = (req, file) => {
   if (!file) return '';
   // Cloudinary sets an absolute URL in file.path starting with http
   if (file.path && file.path.startsWith('http')) {
@@ -17,8 +17,11 @@ const getUploadURL = (file) => {
   }
   // Local storage (Multer) sets file.filename
   if (file.filename) {
-    const backendURL = (process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`).toString().replace(/[\r\n]/g, '').trim();
-    return `${backendURL}/uploads/posters/${file.filename}`;
+    const protocol = req.protocol === 'http' && req.get('x-forwarded-proto') ? req.get('x-forwarded-proto') : req.protocol;
+    const host = req.get('host');
+    const backendURL = process.env.BACKEND_URL || `${protocol}://${host}`;
+    const cleanURL = backendURL.toString().replace(/[\r\n]/g, '').trim();
+    return `${cleanURL}/uploads/posters/${file.filename}`;
   }
   return file.path;
 };
@@ -90,7 +93,7 @@ const createEvent = async (req, res) => {
       title, description, category, date, time, venue, 
       registrationDeadline, participationFee, paymentUpi, maxParticipants, externalLink,
       clubId: club._id,
-      posterURL: getUploadURL(req.file),
+      posterURL: getUploadURL(req, req.file),
       coordinatorName: coordinatorName || club.clubName, // Default to club name if missing
       coordinatorPhone: coordinatorPhone || club.contactPhone || '',
       guests: guests ? (Array.isArray(guests) ? guests : guests.split(',').map(s=>s.trim()).filter(Boolean)) : []
@@ -141,7 +144,7 @@ const updateEvent = async (req, res) => {
       }
     });
 
-    if (req.file) updates.posterURL = getUploadURL(req.file);
+    if (req.file) updates.posterURL = getUploadURL(req, req.file);
 
     const updated = await Event.findByIdAndUpdate(req.params.id, updates, { new: true });
     res.json({ message: 'Event updated', event: updated });
@@ -209,7 +212,7 @@ const registerForEvent = async (req, res) => {
     if (req.file) {
       event.paymentProofs.push({
         studentId: req.user._id,
-        proofURL: getUploadURL(req.file),
+        proofURL: getUploadURL(req, req.file),
         timestamp: new Date()
       });
     }
