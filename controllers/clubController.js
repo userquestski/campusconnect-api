@@ -6,7 +6,7 @@ const Announcement = require('../models/Announcement');
 const Event = require('../models/Event');
 
 // Helper to determine the correct URL for an image based on storage (Cloudinary vs Local)
-const getLogoURL = (file) => {
+const getLogoURL = (req, file) => {
   if (!file) return '';
   // Cloudinary sets an absolute URL in file.path starting with http
   if (file.path && file.path.startsWith('http')) {
@@ -14,8 +14,11 @@ const getLogoURL = (file) => {
   }
   // Local storage (Multer) sets file.filename
   if (file.filename) {
-    const backendURL = (process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`).toString().replace(/[\r\n]/g, '').trim();
-    return `${backendURL}/uploads/posters/${file.filename}`;
+    const protocol = req.protocol === 'http' && req.get('x-forwarded-proto') ? req.get('x-forwarded-proto') : req.protocol;
+    const host = req.get('host');
+    const backendURL = process.env.BACKEND_URL || `${protocol}://${host}`;
+    const cleanURL = backendURL.toString().replace(/[\r\n]/g, '').trim();
+    return `${cleanURL}/uploads/posters/${file.filename}`;
   }
   return file.path;
 };
@@ -107,7 +110,7 @@ const createClub = async (req, res) => {
       contactEmail: contactEmail || '',
       contactPhone: contactPhone || '',
       socialLinks: socialLinks || {},
-      logoURL: getLogoURL(req.file),
+      logoURL: getLogoURL(req, req.file),
     });
 
     res.status(201).json({ message: 'Club registered! Awaiting admin approval.', club });
@@ -133,7 +136,7 @@ const updateClub = async (req, res) => {
     const updates = {};
     allowedFields.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
 
-    if (req.file) updates.logoURL = getLogoURL(req.file);
+    if (req.file) updates.logoURL = getLogoURL(req, req.file);
     const updated = await Club.findByIdAndUpdate(req.params.id, updates, { new: true });
     res.json({ message: 'Club updated', club: updated });
   } catch (error) {
