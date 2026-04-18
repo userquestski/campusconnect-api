@@ -109,6 +109,8 @@ app.use((err, req, res, next) => {
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected successfully");
+    console.log(`🔌 API Base URL (BACKEND_URL): ${process.env.BACKEND_URL || 'Not Set (Falling back to request host)')}`);
+    console.log(`🌐 Allowed Frontend (CLIENT_URL): ${process.env.CLIENT_URL}`);
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });

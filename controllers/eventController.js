@@ -13,17 +13,18 @@ const getUploadURL = (req, file) => {
   if (!file) return '';
   // Cloudinary sets an absolute URL in file.path starting with http
   if (file.path && file.path.startsWith('http')) {
-    return file.path;
+    return file.path.replace(/[\r\n]/g, '').trim();
   }
   // Local storage (Multer) sets file.filename
   if (file.filename) {
     const protocol = req.protocol === 'http' && req.get('x-forwarded-proto') ? req.get('x-forwarded-proto') : req.protocol;
     const host = req.get('host');
+    // Priority: 1. BACKEND_URL Env Var, 2. Current Request Host
     const backendURL = process.env.BACKEND_URL || `${protocol}://${host}`;
     const cleanURL = backendURL.toString().replace(/[\r\n]/g, '').trim();
     return `${cleanURL}/uploads/posters/${file.filename}`;
   }
-  return file.path;
+  return file.path ? file.path.replace(/[\r\n]/g, '').trim() : '';
 };
 
 // ── @GET /api/events ─────────────────────────────────────
