@@ -13,6 +13,7 @@ const cors = require("cors");       // Cross-Origin Resource Sharing
 const rateLimit = require("express-rate-limit"); // Brute-force protection
 
 const app = express();
+app.set("trust proxy", 1); // Trust the first proxy (e.g., Render, Vercel)
 const PORT = process.env.PORT || 5000;
 
 // ── SECURITY MIDDLEWARE ───────────────────────────────────
@@ -56,11 +57,11 @@ const generalLimiter = rateLimit({
 
 // Stricter limits for Login/Register to prevent password guessing
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+  windowMs: 5 * 60 * 1000, // Reduced to 5 minutes window
+  max: 30,                 // Increased to 30 attempts per window
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: "Too many login attempts. Please wait 15 minutes and try again." },
+  message: { message: "Too many login attempts. Please wait a few minutes and try again." },
 });
 
 app.use("/api", generalLimiter);
